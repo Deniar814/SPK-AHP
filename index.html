@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPK AHP Database - Karyawan Terbaik</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-content { display: none; animation: fadeIn 0.4s ease-in-out; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        /* Hilangkan panah up/down di input number */
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans flex flex-col min-h-screen">
+
+    <div class="flex-grow w-full max-w-7xl mx-auto px-4 py-6">
+        
+        <div class="bg-indigo-700 text-white p-6 rounded-xl shadow-md mb-6 flex flex-col sm:flex-row justify-between items-center border-b-4 border-yellow-400">
+            <div>
+                <h1 class="text-2xl font-bold mb-1">SPK Penilaian Karyawan Terbaik (Database)</h1>
+                <p class="text-indigo-200 text-sm">Metode: Analytic Hierarchy Process (AHP) | Tersimpan Otomatis</p>
+            </div>
+            <div class="mt-4 sm:mt-0 text-right">
+                <button onclick="loadDataPDF()" class="px-4 py-2 bg-yellow-400 text-indigo-900 text-sm rounded hover:bg-yellow-300 font-bold shadow transition mb-2">
+                    ⚡ Load Data Sesuai PDF
+                </button><br>
+                <button onclick="hapusSemuaData()" class="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 font-bold transition shadow-sm">
+                    🗑️ Reset Database AHP
+                </button>
+                <div class="mt-2 text-xs text-indigo-100 bg-indigo-800 px-3 py-1 rounded-md inline-block">
+                    ✨ Create by <strong>Deniar Purnama (231011401753)</strong> ✨
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row gap-6">
+            
+            <div class="w-full md:w-1/4 bg-white p-4 rounded-xl shadow-sm border border-gray-200 h-fit">
+                <ul class="space-y-2">
+                    <li><button onclick="pindahTab('tab-kriteria')" id="nav-kriteria" class="w-full text-left px-4 py-3 rounded-lg font-semibold bg-indigo-50 text-indigo-700 border-l-4 border-indigo-500 transition-all">1. Matriks Kriteria</button></li>
+                    <li><button onclick="pindahTab('tab-subkriteria')" id="nav-subkriteria" class="w-full text-left px-4 py-3 rounded-lg font-semibold text-slate-600 hover:bg-slate-50 transition-all">2. Matriks Subkriteria</button></li>
+                    <li><button onclick="pindahTab('tab-alternatif')" id="nav-alternatif" class="w-full text-left px-4 py-3 rounded-lg font-semibold text-slate-600 hover:bg-slate-50 transition-all">3. Data Alternatif</button></li>
+                    <li><button onclick="pindahTab('tab-kalkulasi')" id="nav-kalkulasi" class="w-full text-left px-4 py-3 rounded-lg font-semibold text-slate-600 hover:bg-slate-50 transition-all">4. Kalkulasi Lengkap</button></li>
+                    <li><button onclick="pindahTab('tab-riwayat')" id="nav-riwayat" class="w-full text-left px-4 py-3 rounded-lg font-bold text-amber-600 hover:bg-amber-50 transition-all mt-4 border border-amber-200 bg-amber-50/50">💾 5. Riwayat DB</button></li>
+                </ul>
+            </div>
+
+            <div class="w-full md:w-3/4">
+                
+                <div id="tab-kriteria" class="tab-content active bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h2 class="text-xl font-bold text-slate-800 border-b pb-2 mb-4">Perbandingan Berpasangan Kriteria</h2>
+                    <p class="text-sm text-slate-500 mb-4 bg-slate-50 p-3 rounded border">💡 <strong>Info:</strong> Isi nilai di area warna putih. Kolom abu-abu akan terisi otomatis. Semua perubahan langsung <b>tersimpan di Database Browser</b>.</p>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-center border-collapse">
+                            <thead>
+                                <tr class="bg-indigo-600 text-white">
+                                    <th class="p-2 border">Kriteria</th>
+                                    <th class="p-2 border">K1 (Disiplin)</th>
+                                    <th class="p-2 border">K2 (Performa)</th>
+                                    <th class="p-2 border">K3 (Kerjasama)</th>
+                                    <th class="p-2 border">K4 (Attitude)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bodyMatriksKriteria"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="tab-subkriteria" class="tab-content bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h2 class="text-xl font-bold text-slate-800 border-b pb-2 mb-4">Perbandingan Subkriteria (SB, B, C, K)</h2>
+                    
+                    <div class="flex gap-2 mb-4 bg-indigo-50 p-2 rounded">
+                        <button onclick="ubahTampilanSub(0)" id="btnSub0" class="px-4 py-2 bg-indigo-600 text-white rounded font-semibold text-sm shadow">Sub K1 (Disiplin)</button>
+                        <button onclick="ubahTampilanSub(1)" id="btnSub1" class="px-4 py-2 text-indigo-700 hover:bg-indigo-200 rounded font-semibold text-sm transition">Sub K2 (Performa)</button>
+                        <button onclick="ubahTampilanSub(2)" id="btnSub2" class="px-4 py-2 text-indigo-700 hover:bg-indigo-200 rounded font-semibold text-sm transition">Sub K3 (Kerjasama)</button>
+                        <button onclick="ubahTampilanSub(3)" id="btnSub3" class="px-4 py-2 text-indigo-700 hover:bg-indigo-200 rounded font-semibold text-sm transition">Sub K4 (Attitude)</button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-center border-collapse">
+                            <thead>
+                                <tr class="bg-emerald-600 text-white">
+                                    <th class="p-2 border">Subkriteria</th>
+                                    <th class="p-2 border">SB (Sangat Baik)</th>
+                                    <th class="p-2 border">B (Baik)</th>
+                                    <th class="p-2 border">C (Cukup)</th>
+                                    <th class="p-2 border">K (Kurang)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bodyMatriksSubkriteria"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="tab-alternatif" class="tab-content bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h2 class="text-xl font-bold text-slate-800 border-b pb-2 mb-4">Data Alternatif (Calon Karyawan)</h2>
+                    
+                    <div class="mb-6 bg-slate-50 p-4 rounded-lg border flex gap-2 items-end flex-wrap shadow-inner">
+                        <div class="w-full sm:w-auto flex-grow"><label class="text-xs font-bold text-indigo-800">Nama Karyawan</label><input type="text" id="altNama" class="w-full border p-2 rounded text-sm mt-1"></div>
+                        <div><label class="text-xs font-bold text-indigo-800">K1 (Disiplin)</label><select id="altK1" class="w-full border p-2 rounded text-sm mt-1"><option value="0">SB</option><option value="1">B</option><option value="2">C</option><option value="3">K</option></select></div>
+                        <div><label class="text-xs font-bold text-indigo-800">K2 (Performa)</label><select id="altK2" class="w-full border p-2 rounded text-sm mt-1"><option value="0">SB</option><option value="1">B</option><option value="2">C</option><option value="3">K</option></select></div>
+                        <div><label class="text-xs font-bold text-indigo-800">K3 (KerjaSama)</label><select id="altK3" class="w-full border p-2 rounded text-sm mt-1"><option value="0">SB</option><option value="1">B</option><option value="2">C</option><option value="3">K</option></select></div>
+                        <div><label class="text-xs font-bold text-indigo-800">K4 (Attitude)</label><select id="altK4" class="w-full border p-2 rounded text-sm mt-1"><option value="0">SB</option><option value="1">B</option><option value="2">C</option><option value="3">K</option></select></div>
+                        <button onclick="tambahAlternatif()" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700 font-bold h-[38px] shadow">Tambah</button>
+                    </div>
+
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead><tr class="bg-slate-200"><th class="p-2 border">Nama</th><th class="p-2 border">K1</th><th class="p-2 border">K2</th><th class="p-2 border">K3</th><th class="p-2 border">K4</th><th class="p-2 border text-center">Aksi</th></tr></thead>
+                        <tbody id="bodyAlternatif"></tbody>
+                    </table>
+                </div>
+
+                <div id="tab-kalkulasi" class="tab-content bg-slate-50">
+                    
+                    <button onclick="jalankanAHP()" class="w-full px-6 py-4 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold shadow-lg mb-6 text-lg transition-transform active:scale-95 flex items-center justify-center gap-2">
+                        🔄 Proses Seluruh Perhitungan AHP & Simpan Riwayat
+                    </button>
+
+                    <div id="areaKalkulasi" class="space-y-6 hidden">
+                        </div>
+
+                </div>
+
+                <div id="tab-riwayat" class="tab-content bg-white p-6 rounded-xl shadow-sm border border-amber-200">
+                    <div class="flex justify-between items-center border-b pb-3 mb-5">
+                        <h2 class="text-xl font-bold text-amber-800">💾 Riwayat Perhitungan AHP</h2>
+                        <button onclick="hapusRiwayat()" class="text-xs bg-red-100 text-red-600 px-3 py-1.5 rounded hover:bg-red-200 font-bold">Bersihkan Riwayat</button>
+                    </div>
+                    <p class="text-sm text-slate-500 mb-6">Data ini diambil secara lokal dari Web Storage. Klik tombol <b>"Gunakan Data Matriks Ini"</b> untuk me-load kembali studi kasus ke dalam form.</p>
+                    
+                    <div id="areaRiwayat" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA STATE & INISIALISASI DATABASE ---
+        const SIZE = 4;
+        const labelsK = ['K1 (Disiplin)', 'K2 (Performa)', 'K3 (Kerjasama)', 'K4 (Attitude)'];
+        const labelsSub = ['SB', 'B', 'C', 'K'];
+        const RI_DICT = { 1: 0.00, 2: 0.00, 3: 0.58, 4: 0.90, 5: 1.12 }; 
+
+        // Load dari localStorage (Gua kasih ID unik 'ahp_deniar_' biar gak nabrak web temen lu/SPK SAW)
+        let matKriteria = JSON.parse(localStorage.getItem('ahp_deniar_matKriteria')) || Array(SIZE).fill().map(() => Array(SIZE).fill(1));
+        let matSub = JSON.parse(localStorage.getItem('ahp_deniar_matSub')) || Array(SIZE).fill().map(() => Array(SIZE).fill().map(() => Array(SIZE).fill(1)));
+        let alternatifList = JSON.parse(localStorage.getItem('ahp_deniar_alternatif')) || [];
+        let riwayatDB = JSON.parse(localStorage.getItem('ahp_deniar_riwayat')) || [];
+        
+        let subAktif = 0; 
+
+        // --- SISTEM SIMPAN DATABASE ---
+        function simpanKeDatabase() {
+            localStorage.setItem('ahp_deniar_matKriteria', JSON.stringify(matKriteria));
+            localStorage.setItem('ahp_deniar_matSub', JSON.stringify(matSub));
+            localStorage.setItem('ahp_deniar_alternatif', JSON.stringify(alternatifList));
+        }
+
+        function simpanKeRiwayat(hasilSorted, isKriteriaKonsisten) {
+            let waktu = new Date().toLocaleString('id-ID');
+            
+            // Backup data matriks & alternatif saat ini
+            let backupKriteria = JSON.parse(JSON.stringify(matKriteria));
+            let backupSub = JSON.parse(JSON.stringify(matSub));
+            let backupAlternatif = JSON.parse(JSON.stringify(alternatifList));
+
+            let dataSimpan = { 
+                waktu: waktu, 
+                juara: hasilSorted,
+                isKonsisten: isKriteriaKonsisten,
+                kriteriaBackup: backupKriteria,
+                subBackup: backupSub,
+                alternatifBackup: backupAlternatif
+            };
+            
+            riwayatDB.unshift(dataSimpan); 
+            localStorage.setItem('ahp_deniar_riwayat', JSON.stringify(riwayatDB));
+            renderRiwayat(); 
+        }
+
+        function loadDariRiwayat(index) {
+            if(confirm("Yakin ingin menimpa data yang ada di form saat ini dengan data dari Riwayat ini?")) {
+                let dataPilihan = riwayatDB[index];
+                
+                matKriteria = JSON.parse(JSON.stringify(dataPilihan.kriteriaBackup));
+                matSub = JSON.parse(JSON.stringify(dataPilihan.subBackup));
+                alternatifList = JSON.parse(JSON.stringify(dataPilihan.alternatifBackup || []));
+
+                simpanKeDatabase();
+                renderMatriksKriteria();
+                renderMatriksSubkriteria();
+                renderAlternatif();
+                
+                alert(`Data Studi Kasus pada ${dataPilihan.waktu} berhasil dimuat kembali!`);
+                pindahTab('tab-kriteria');
+            }
+        }
+
+        // --- SISTEM NAVIGASI TAB ---
+        function pindahTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('[id^="nav-"]').forEach(el => {
+                if(el.id === 'nav-riwayat') el.className = "w-full text-left px-4 py-3 rounded-lg font-bold text-amber-600 hover:bg-amber-50 transition-all mt-4 border border-amber-200 bg-amber-50/50";
+                else el.className = "w-full text-left px-4 py-3 rounded-lg font-semibold text-slate-600 hover:bg-slate-50 transition-all";
+            });
+
+            document.getElementById(tabId).classList.add('active');
+            let navId = tabId.replace('tab', 'nav');
+            let navBtn = document.getElementById(navId);
+            
+            if(navBtn && navId !== 'nav-riwayat') {
+                navBtn.className = "w-full text-left px-4 py-3 rounded-lg font-semibold bg-indigo-50 text-indigo-700 border-l-4 border-indigo-500 transition-all";
+            } else if (navBtn && navId === 'nav-riwayat') {
+                navBtn.className = "w-full text-left px-4 py-3 rounded-lg font-bold bg-amber-500 text-white border-l-4 border-amber-600 transition-all mt-4 shadow";
+            }
+        }
+
+        // --- RENDER MATRIKS INPUT ---
+        function renderMatriksKriteria() {
+            let html = '';
+            for(let i=0; i<SIZE; i++) {
+                html += `<tr><td class="p-2 border font-bold bg-slate-100">${labelsK[i].split(' ')[0]}</td>`;
+                for(let j=0; j<SIZE; j++) {
+                    if(i === j) {
+                        html += `<td class="p-2 border bg-slate-200"><input type="number" value="1" disabled class="w-full text-center bg-transparent font-bold"></td>`;
+                    } else if(i < j) {
+                        html += `<td class="p-2 border bg-white"><input type="number" step="any" value="${matKriteria[i][j]}" onchange="updateMatKriteria(${i},${j}, this.value)" class="w-full text-center outline-none focus:border-b-2 focus:border-indigo-500 font-semibold text-indigo-700"></td>`;
+                    } else {
+                        html += `<td class="p-2 border bg-slate-100"><input type="number" step="any" value="${matKriteria[i][j].toFixed(4)}" disabled id="matK_${i}_${j}" class="w-full text-center bg-transparent text-slate-500 text-xs"></td>`;
+                    }
+                }
+                html += `</tr>`;
+            }
+            document.getElementById('bodyMatriksKriteria').innerHTML = html;
+        }
+
+        function updateMatKriteria(i, j, val) {
+            let num = parseFloat(val) || 1;
+            matKriteria[i][j] = num;
+            matKriteria[j][i] = 1 / num;
+            document.getElementById(`matK_${j}_${i}`).value = (1/num).toFixed(4);
+            simpanKeDatabase();
+        }
+
+        function ubahTampilanSub(idx) {
+            subAktif = idx;
+            for(let i=0; i<SIZE; i++) {
+                document.getElementById(`btnSub${i}`).className = i === idx ? "px-4 py-2 bg-indigo-600 text-white rounded font-semibold text-sm shadow" : "px-4 py-2 text-indigo-700 hover:bg-indigo-200 rounded font-semibold text-sm transition";
+            }
+            renderMatriksSubkriteria();
+        }
+
+        function renderMatriksSubkriteria() {
+            let html = '';
+            for(let i=0; i<SIZE; i++) {
+                html += `<tr><td class="p-2 border font-bold bg-slate-100">${labelsSub[i]}</td>`;
+                for(let j=0; j<SIZE; j++) {
+                    if(i === j) {
+                        html += `<td class="p-2 border bg-slate-200"><input type="number" value="1" disabled class="w-full text-center bg-transparent font-bold"></td>`;
+                    } else if(i < j) {
+                        html += `<td class="p-2 border bg-white"><input type="number" step="any" value="${matSub[subAktif][i][j]}" onchange="updateMatSub(${i},${j}, this.value)" class="w-full text-center outline-none focus:border-b-2 focus:border-emerald-500 font-semibold text-emerald-700"></td>`;
+                    } else {
+                        html += `<td class="p-2 border bg-slate-100"><input type="number" step="any" value="${matSub[subAktif][i][j].toFixed(4)}" disabled id="matS_${subAktif}_${i}_${j}" class="w-full text-center bg-transparent text-slate-500 text-xs"></td>`;
+                    }
+                }
+                html += `</tr>`;
+            }
+            document.getElementById('bodyMatriksSubkriteria').innerHTML = html;
+        }
+
+        function updateMatSub(i, j, val) {
+            let num = parseFloat(val) || 1;
+            matSub[subAktif][i][j] = num;
+            matSub[subAktif][j][i] = 1 / num;
+            document.getElementById(`matS_${subAktif}_${j}_${i}`).value = (1/num).toFixed(4);
+            simpanKeDatabase();
+        }
+
+        // --- ALTERNATIF CRUD ---
+        function renderAlternatif() {
+            let html = '';
+            alternatifList.forEach((a, i) => {
+                html += `<tr class="border-b bg-white hover:bg-slate-50"><td class="p-2 font-semibold border">${a.nama}</td><td class="p-2 border">${labelsSub[a.nilai[0]]}</td><td class="p-2 border">${labelsSub[a.nilai[1]]}</td><td class="p-2 border">${labelsSub[a.nilai[2]]}</td><td class="p-2 border">${labelsSub[a.nilai[3]]}</td><td class="p-2 text-center border"><button onclick="hapusAlternatif(${i})" class="text-red-500 font-bold bg-red-50 px-2 py-1 rounded">Hapus</button></td></tr>`;
+            });
+            document.getElementById('bodyAlternatif').innerHTML = html;
+        }
+
+        function tambahAlternatif() {
+            let nama = document.getElementById('altNama').value;
+            if(!nama) return alert("Isi nama karyawan!");
+            let nilai = [ parseInt(document.getElementById('altK1').value), parseInt(document.getElementById('altK2').value), parseInt(document.getElementById('altK3').value), parseInt(document.getElementById('altK4').value) ];
+            alternatifList.push({ nama, nilai });
+            document.getElementById('altNama').value = '';
+            renderAlternatif();
+            simpanKeDatabase();
+        }
+        function hapusAlternatif(idx) { alternatifList.splice(idx, 1); renderAlternatif(); simpanKeDatabase(); }
+
+        // --- RENDER RIWAYAT ---
+        function renderRiwayat() {
+            const area = document.getElementById('areaRiwayat');
+            area.innerHTML = '';
+            if(riwayatDB.length === 0) {
+                area.innerHTML = '<div class="col-span-1 md:col-span-2 text-center p-6 text-slate-400 border-2 border-dashed rounded-lg bg-slate-50">Belum ada riwayat perhitungan AHP.</div>';
+                return;
+            }
+
+            riwayatDB.forEach((riw, index) => {
+                let top3 = riw.juara.slice(0, 3); 
+                let statusCR = riw.isKonsisten ? '<span class="text-green-600 font-bold bg-green-100 px-2 rounded text-xs">CR Acceptable ✅</span>' : '<span class="text-red-600 font-bold bg-red-100 px-2 rounded text-xs">Tidak Konsisten ❌</span>';
+                
+                let html = `
+                <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl shadow-sm hover:shadow-md transition">
+                    <div class="flex justify-between border-b pb-2 mb-2 items-start">
+                        <div><span class="font-bold text-indigo-800 text-sm block mb-1">AHP - Penilaian Karyawan</span>${statusCR}</div>
+                        <span class="text-xs text-slate-400 font-medium">${riw.waktu}</span>
+                    </div>
+                    <p class="text-xs font-bold text-slate-500 mb-2">Top 3 Hasil:</p>
+                    <ul class="text-sm space-y-1 mb-3">
+                `;
+                top3.forEach((j, i) => {
+                    let medali = i === 0 ? '🥇' : (i === 1 ? '🥈' : '🥉');
+                    html += `<li class="flex justify-between bg-white px-2 py-1 rounded border"><span>${medali} <b>${j.nama}</b></span> <span class="font-mono text-indigo-600 font-bold">${j.skor.toFixed(4)}</span></li>`;
+                });
+                html += `</ul><button onclick="loadDariRiwayat(${index})" class="w-full px-3 py-2 bg-blue-100 text-blue-700 text-xs font-bold rounded hover:bg-blue-200 transition border border-blue-200">🔄 Gunakan Data Matriks Ini</button></div>`;
+                area.innerHTML += html;
+            });
+        }
+
+        function hapusRiwayat() {
+            if(confirm('Yakin hapus semua riwayat AHP?')) {
+                riwayatDB = [];
+                localStorage.removeItem('ahp_deniar_riwayat');
+                renderRiwayat();
+            }
+        }
+
+        function hapusSemuaData() {
+            if(confirm('Yakin ingin mereset seluruh database AHP (Kriteria, Subkriteria, Alternatif, dan Riwayat)?')) {
+                localStorage.removeItem('ahp_deniar_matKriteria');
+                localStorage.removeItem('ahp_deniar_matSub');
+                localStorage.removeItem('ahp_deniar_alternatif');
+                localStorage.removeItem('ahp_deniar_riwayat');
+                location.reload();
+            }
+        }
+
+        // ================= MESIN MATEMATIKA AHP =================
+        function hitungAHP(matrix) {
+            let sums = Array(SIZE).fill(0);
+            for(let j=0; j<SIZE; j++) {
+                for(let i=0; i<SIZE; i++) sums[j] += matrix[i][j];
+            }
+            
+            let normalized = Array(SIZE).fill().map(() => Array(SIZE).fill(0));
+            let priorities = Array(SIZE).fill(0);
+            
+            for(let i=0; i<SIZE; i++) {
+                let rowSum = 0;
+                for(let j=0; j<SIZE; j++) {
+                    normalized[i][j] = matrix[i][j] / sums[j];
+                    rowSum += normalized[i][j];
+                }
+                priorities[i] = rowSum / SIZE;
+            }
+
+            let lambdaMax = 0;
+            let lambdas = Array(SIZE).fill(0);
+            for(let i=0; i<SIZE; i++) {
+                let cv = 0;
+                for(let j=0; j<SIZE; j++) cv += matrix[i][j] * priorities[j];
+                lambdas[i] = cv / priorities[i];
+                lambdaMax += lambdas[i];
+            }
+            lambdaMax = lambdaMax / SIZE;
+
+            let CI = (lambdaMax - SIZE) / (SIZE - 1);
+            let CR = CI / RI_DICT[SIZE];
+
+            return { sums, normalized, priorities, lambdas, lambdaMax, CI, CR };
+        }
+
+        // ================= EKSEKUSI & RENDER TABEL HTML =================
+        function jalankanAHP() {
+            if(alternatifList.length === 0) return alert("Data alternatif belum diisi!");
+            const area = document.getElementById('areaKalkulasi');
+            area.innerHTML = '';
+            area.classList.remove('hidden');
+
+            let masterHTML = '';
+
+            // --- 1. AHP KRITERIA ---
+            let resK = hitungAHP(matKriteria);
+            let isKriteriaKonsisten = resK.CR <= 0.1;
+
+            masterHTML += `<div class="bg-white p-6 rounded-xl border border-indigo-200 shadow-sm"><h2 class="text-xl font-bold text-indigo-700 border-b pb-2 mb-4">A. Perhitungan AHP Kriteria</h2>`;
+            
+            let htmlKNorm = `<table class="w-full text-center text-sm border-collapse mb-4"><thead><tr class="bg-indigo-100 border"><th class="p-2 border">Kriteria</th>`;
+            for(let i=0; i<SIZE; i++) htmlKNorm += `<th class="p-2 border">K${i+1}</th>`;
+            htmlKNorm += `<th class="p-2 border bg-indigo-200 font-bold">Prioritas (Bobot)</th></tr></thead><tbody>`;
+            
+            for(let i=0; i<SIZE; i++) {
+                htmlKNorm += `<tr><td class="p-2 border font-bold">K${i+1}</td>`;
+                for(let j=0; j<SIZE; j++) htmlKNorm += `<td class="p-2 border">${resK.normalized[i][j].toFixed(4)}</td>`;
+                htmlKNorm += `<td class="p-2 border font-bold text-indigo-700 bg-indigo-50">${resK.priorities[i].toFixed(4)}</td></tr>`;
+            }
+            htmlKNorm += `</tbody></table>`;
+            masterHTML += htmlKNorm;
+
+            masterHTML += `<div class="bg-slate-50 p-4 rounded border text-sm grid grid-cols-2 gap-4">
+                <div><b>&lambda; Max:</b> ${resK.lambdaMax.toFixed(4)}</div>
+                <div><b>CI:</b> ${resK.CI.toFixed(4)}</div>
+                <div><b>CR:</b> ${resK.CR.toFixed(4)}</div>
+                <div><b>Status:</b> <span class="font-bold ${resK.CR <= 0.1 ? 'text-green-600' : 'text-red-600'}">${resK.CR <= 0.1 ? 'Acceptable ✅' : 'Tidak Konsisten ❌'}</span></div>
+            </div></div>`;
+
+            // --- 2. AHP SUBKRITERIA ---
+            let prioritasSubGlobal = []; 
+            
+            masterHTML += `<div class="bg-white p-6 rounded-xl border border-emerald-200 shadow-sm mt-6"><h2 class="text-xl font-bold text-emerald-700 border-b pb-2 mb-4">B. Perhitungan AHP Subkriteria</h2>`;
+            
+            for(let k=0; k<SIZE; k++) {
+                let resSub = hitungAHP(matSub[k]);
+                prioritasSubGlobal.push(resSub.priorities);
+
+                masterHTML += `<h3 class="font-bold text-slate-700 mt-4 mb-2">Subkriteria ${labelsK[k]}</h3>
+                <table class="w-full text-center text-sm border-collapse mb-2"><thead><tr class="bg-emerald-100 border"><th class="p-2 border">Sub</th>`;
+                for(let i=0; i<SIZE; i++) masterHTML += `<th class="p-2 border">${labelsSub[i]}</th>`;
+                masterHTML += `<th class="p-2 border bg-emerald-200">Prioritas</th></tr></thead><tbody>`;
+                
+                for(let i=0; i<SIZE; i++) {
+                    masterHTML += `<tr><td class="p-2 border font-bold">${labelsSub[i]}</td>`;
+                    for(let j=0; j<SIZE; j++) masterHTML += `<td class="p-2 border">${resSub.normalized[i][j].toFixed(4)}</td>`;
+                    masterHTML += `<td class="p-2 border font-bold text-emerald-700 bg-emerald-50">${resSub.priorities[i].toFixed(4)}</td></tr>`;
+                }
+                masterHTML += `</tbody></table>`;
+                masterHTML += `<div class="text-xs text-slate-500 mb-6">CR: ${resSub.CR.toFixed(4)} (${resSub.CR <= 0.1 ? 'Acceptable' : 'Tidak Konsisten'})</div>`;
+            }
+            masterHTML += `</div>`;
+
+            // --- 3. MATRIKS HASIL GLOBAL ---
+            masterHTML += `<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mt-6"><h2 class="text-xl font-bold text-slate-700 border-b pb-2 mb-4">C. Matriks Hasil Global</h2>
+            <table class="w-full text-center text-sm border-collapse mb-4"><thead><tr class="bg-slate-200 border"><th class="p-2 border">Kriteria -></th>`;
+            for(let i=0; i<SIZE; i++) masterHTML += `<th class="p-2 border">K${i+1}<br><span class="text-xs text-blue-600">${resK.priorities[i].toFixed(4)}</span></th>`;
+            masterHTML += `</tr></thead><tbody>`;
+
+            for(let s=0; s<SIZE; s++) {
+                masterHTML += `<tr><td class="p-2 border font-bold bg-slate-100">${labelsSub[s]}</td>`;
+                for(let k=0; k<SIZE; k++) {
+                    masterHTML += `<td class="p-2 border">${prioritasSubGlobal[k][s].toFixed(4)}</td>`;
+                }
+                masterHTML += `</tr>`;
+            }
+            masterHTML += `</tbody></table></div>`;
+
+            // --- 4. PERHITUNGAN AKHIR ALTERNATIF ---
+            masterHTML += `<div class="bg-slate-800 text-white p-6 rounded-xl border border-slate-700 shadow-lg mt-6"><h2 class="text-2xl font-bold text-yellow-400 border-b border-slate-600 pb-2 mb-4">🏆 Hasil Penilaian Karyawan</h2>
+            <div class="overflow-x-auto"><table class="w-full text-center text-sm border-collapse"><thead><tr class="bg-slate-700"><th class="p-3 border border-slate-600">Nama</th>`;
+            for(let i=0; i<SIZE; i++) masterHTML += `<th class="p-3 border border-slate-600">K${i+1}</th>`;
+            masterHTML += `<th class="p-3 border border-slate-600 bg-blue-600">Total Skor</th><th class="p-3 border border-slate-600 bg-emerald-600">Keputusan</th></tr></thead><tbody>`;
+
+            let hasilAkhir = [];
+
+            alternatifList.forEach(alt => {
+                let trHTML = `<tr><td class="p-3 border border-slate-600 font-bold">${alt.nama}</td>`;
+                let totalSkor = 0;
+                
+                for(let k=0; k<SIZE; k++) {
+                    let nilaiSubIdx = alt.nilai[k]; 
+                    let bobotGlobal = resK.priorities[k];
+                    let prioritasLokal = prioritasSubGlobal[k][nilaiSubIdx];
+                    let skorKriteria = bobotGlobal * prioritasLokal;
+                    
+                    totalSkor += skorKriteria;
+                    trHTML += `<td class="p-3 border border-slate-600">${skorKriteria.toFixed(4)}</td>`;
+                }
+
+                let status = totalSkor > 0.3000 ? '<span class="text-emerald-400 font-bold">Direkomendasikan</span>' : '<span class="text-red-400 font-bold">Tidak Rekomen</span>';
+                
+                trHTML += `<td class="p-3 border border-slate-600 font-mono text-yellow-300 font-bold text-lg">${totalSkor.toFixed(4)}</td><td class="p-3 border border-slate-600">${status}</td></tr>`;
+                
+                hasilAkhir.push({ nama: alt.nama, skor: totalSkor, html: trHTML });
+            });
+
+            // Urutkan
+            let sortedHasil = hasilAkhir.sort((a,b) => b.skor - a.skor);
+            sortedHasil.forEach(h => masterHTML += h.html);
+
+            masterHTML += `</tbody></table></div></div>`;
+            
+            area.innerHTML = masterHTML;
+            
+            // Simpan ke riwayat
+            simpanKeRiwayat(sortedHasil, isKriteriaKonsisten);
+
+            setTimeout(() => { document.getElementById('areaKalkulasi').scrollIntoView({ behavior: 'smooth' }); }, 100);
+        }
+
+        // --- HARDCODE DATA DARI PDF ---
+        function loadDataPDF() {
+            matKriteria = [ [1, 2, 2, 4], [0.5, 1, 2, 2], [0.5, 0.5, 1, 2], [0.25, 0.5, 0.5, 1] ];
+            matSub[0] = [ [1, 2, 4, 6], [0.5, 1, 2, 4], [0.25, 0.5, 1, 2], [0.17, 0.25, 0.5, 1] ];
+            matSub[1] = [ [1, 3, 5, 8], [0.33, 1, 2, 4], [0.2, 0.5, 1, 3], [0.13, 0.25, 0.33, 1] ];
+            matSub[2] = [ [1, 1, 3, 5], [1, 1, 2, 3], [0.33, 0.5, 1, 2], [0.2, 0.33, 0.5, 1] ];
+            matSub[3] = [ [1, 2, 7, 7], [0.5, 1, 3, 5], [0.14, 0.33, 1, 2], [0.14, 0.2, 0.5, 1] ];
+
+            alternatifList = [
+                {nama: 'Ahmad', nilai: [1, 0, 1, 0]}, // B, SB, B, SB
+                {nama: 'Budi', nilai: [0, 1, 2, 0]},  // SB, B, C, SB
+                {nama: 'Citra', nilai: [1, 0, 0, 1]}, // B, SB, SB, B
+                {nama: 'Dedi', nilai: [2, 1, 1, 2]},  // C, B, B, C
+                {nama: 'Eka', nilai: [1, 0, 0, 2]}    // B, SB, SB, C
+            ];
+
+            simpanKeDatabase();
+            renderMatriksKriteria();
+            renderMatriksSubkriteria();
+            renderAlternatif();
+            
+            alert("Data PDF berhasil diload ke Database! Silakan klik '4. Kalkulasi Lengkap'.");
+        }
+
+        // Inisialisasi awal
+        renderMatriksKriteria();
+        renderMatriksSubkriteria();
+        renderAlternatif();
+        renderRiwayat();
+    </script>
+</body>
+</html>
